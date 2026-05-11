@@ -3,10 +3,9 @@ from typing import Any
 from asyncua import ua, Node
 from asyncua.ua import Variant
 from asyncua.common.node import Node
-from easy_opcua import AppLogger
+import logging
 
-log = AppLogger().get_logger(__name__)
-
+log = logging.getLogger(__name__)
 
 class ServerTag:
     def __init__(self, address: str, variant_type: ua.VariantType, initial_value: Any = None, writable: bool = False):

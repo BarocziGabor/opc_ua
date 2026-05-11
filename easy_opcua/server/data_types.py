@@ -5,9 +5,9 @@ from asyncua import ua, Node
 from asyncua.ua import Variant, VariantType 
 from asyncua.common.node import Node
 from asyncua.common.subscription import DataChangeNotif
-from easy_opcua import AppLogger
+import logging
 
-log = AppLogger().get_logger(__name__)
+log = logging.getLogger(__name__)
 
 @dataclass
 class DataChangeNotifData:

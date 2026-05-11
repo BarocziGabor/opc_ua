@@ -15,9 +15,9 @@ from .data_types import OpcUaServerStatus, OpcUaServerStatusClass, AddressString
 from .server_config import OpcUaServerConfig
 from .tag_manager import TagManager
 import traceback as tb
-from easy_opcua import AppLogger
+import logging
 
-log = AppLogger().get_logger(__name__)
+log = logging.getLogger(__name__)
 
 class MyUserManager(UserManager):
     def __init__(self, config: OpcUaServerConfig):

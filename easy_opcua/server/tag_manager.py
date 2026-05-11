@@ -4,9 +4,9 @@ from asyncua.common.subscription import Subscription
 from .data_types import SyncAndAsyncCallbackType, AddressString
 from .subhandler import SubHandler
 from .server_tag import ServerTag
-from easy_opcua import AppLogger
+import logging
 
-log = AppLogger().get_logger(__name__)
+log = logging.getLogger(__name__)
 
 class TagManager:
     SUBSCRIPTION_POLL_PERIOD_MS = 100

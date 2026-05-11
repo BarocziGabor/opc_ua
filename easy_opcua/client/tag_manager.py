@@ -8,10 +8,9 @@ from asyncua.common.subscription import Subscription
 from .data_types import SyncAndAsyncCallbackType, AddressString
 from .sub_handler import ClientSubHandler
 from .client_tag import ClientTag
-from easy_opcua import AppLogger
+import logging
 
-log = AppLogger().get_logger(__name__)
-
+log = logging.getLogger(__name__)
 
 class ClientTagManager:
     def __init__(self):
@@ -63,7 +62,7 @@ class ClientTagManager:
             tag_nodes.append(self.tags[tag_address]._node)
 
         if not tag_nodes:
-            print("ClientTagManager - No valid tags to subscribe to.")
+            log.warning("ClientTagManager - No valid tags to subscribe to.")
             return None
 
         handler = ClientSubHandler(tag_nodes, self._tag_events)

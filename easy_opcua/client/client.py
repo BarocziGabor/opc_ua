@@ -12,9 +12,9 @@ from cryptography.x509.oid import ExtendedKeyUsageOID
 from .data_types import OpcUaClientStatus, OpcUaClientStatusClass, NameSpaceMissingError, DisconnectError
 from .client_config import OpcUaClientConfig
 from .tag_manager import ClientTagManager
-from easy_opcua import AppLogger
+import logging
 
-log = AppLogger().get_logger(__name__)
+log = logging.getLogger(__name__)
 
 class OPCUAClient(Thread):
     """OPCUAClient: asynchronous OPC UA client running in a separate thread.

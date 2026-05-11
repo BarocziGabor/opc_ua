@@ -5,11 +5,9 @@ from asyncua import Node
 from asyncua.common.subscription import DataChangeNotif
 from .data_types import DataChangeNotifData, SyncAndAsyncCallbackType
 import traceback as tb
-from easy_opcua import AppLogger
+import logging
 
-log = AppLogger().get_logger(__name__)
-
-
+log = logging.getLogger(__name__)
 
 class SubHandler:
     def __init__(self, tag_nodes: list[Node], tag_events: dict[str, SyncAndAsyncCallbackType]):
