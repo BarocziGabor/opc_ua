@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0", "setuptools-scm>=8.0"]
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "easy_opcua"
-dynamic = ["version"]
+version = "1.0.0"  # <--- Hardcoded static version
 description = "OPC UA server and client with easy tag handling"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -13,6 +13,7 @@ authors = [
     {name = "Gabor, Baroczi", email = "baroczi.gabor@gmail.com"}
 ]
 
+
 dependencies = [
     "asyncua>=1.1.8",
     "pydantic>=2.0.0",
@@ -20,8 +21,15 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 include = ["easy_opcua*"]
-
-# Configuration for setuptools-scm
-[tool.setuptools_scm]
-fallback_version = "0.0.0"
-
+# [project.optional-dependencies]
+# dev = [
+#     "pytest>=7.0",
+#     "black>=24.0",
+#     "pyinstaller",
+# ]
+# 
+# [tool.black]
+# line-length = 88
+# 
+# [tool.isort]
+# profile = "black"
