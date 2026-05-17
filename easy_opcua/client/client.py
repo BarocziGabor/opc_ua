@@ -16,6 +16,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
+
 class OPCUAClient(Thread):
     """OPCUAClient: asynchronous OPC UA client running in a separate thread.
     Manages node fetching, tag subscriptions, and automatic reconnection
@@ -47,8 +48,15 @@ class OPCUAClient(Thread):
                 try:
                     self._loop.run_until_complete(self._async_worker())
                 except Exception as e:
-                    log.exception(f"OPCUAClient run error: {e}")
+                    log.exception(f"Run error: {e}")
         finally:
+            # Suppress "Task exception was never retrieved" by cleaning up pending tasks
+            pending = aio.all_tasks(self._loop)
+            for task in pending:
+                task.cancel()
+            if pending:
+                self._loop.run_until_complete(aio.gather(*pending, return_exceptions=True))
+            
             self._loop.close()
 
     def start(self, wait_for_startup: bool = True) -> None:
@@ -62,7 +70,7 @@ class OPCUAClient(Thread):
         try:
             self.join(timeout=timeout)
         except RuntimeError as e:
-            log.exception(f"OPCUAClient stop RuntimeError: {e}")
+            log.exception(f"Stop RuntimeError: {e}")
         except KeyboardInterrupt:
             pass
         self._opcua_status.status = OpcUaClientStatus.STOPPED
@@ -180,21 +188,20 @@ class OPCUAClient(Thread):
                             # The 'async with' block will handle closing the transport
                     await self._tag_manager._unsubscribe_async()
             except DisconnectError as e:
-                log.error(f"OPCUAClient _async_worker error: {e}")
+                log.warning(f"Disconnected: {e}")
 
             except NameSpaceMissingError as e: # possible exception if invalid namespace
-                log.error(f"OPCUAClient _async_worker error: {e}")
-   
+                log.error(f"Namespace error: {e}")
+            except ConnectionRefusedError as e:
+                log.error(f"Connection error ({self.config.endpoint}): {e}")
             except Exception as e:
-                log.error(f"OPCUAClient _async_worker error: {e}")
+                if not self._aio_stop_event.is_set():
+                    log.error(f"'{type(e).__name__}' error: {e}")
 
             if not self._aio_stop_event.is_set():
                 self._opcua_status.status = OpcUaClientStatus.RECONNECTING
                 log.info(f"{self.config.client_name} - reconnecting in {self.config.reconnect_interval}s ...")
                 await aio.sleep(self.config.reconnect_interval)
-            else:
-                if self._client and self._client.uaclient.protocol: 
-                    await self.tag_manager._subscription.delete()
 
     # ------------------------------------------------------------------
     # Properties

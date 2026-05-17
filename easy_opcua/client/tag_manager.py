@@ -77,7 +77,9 @@ class ClientTagManager:
             try:
                 await self._subscription.delete()
             except Exception as e:
-                log.exception(f"_unsubscribe_async error: {e}")
+                log.debug(f"_unsubscribe_async: subscription already gone or session closing: {e}")
+            finally:
+                self._subscription = None
         for tag in self.tags.values():
             tag._clear_node()
 
@@ -113,11 +115,13 @@ class ClientTagManager:
         self.write(key, value)
 
     def log_tags(self) -> None:
-        log.info("ClientTagManager - List of tags:")
+        s = ["ClientTagManager - List of tags:"]
         for tag in self.tags.values():
-            log.info(f"  - {tag}")
+            s.append(f"  - {tag}")
+        log.info("\n".join(s))
 
     def log_subscriptions(self) -> None:
-        log.info("ClientTagManager - List of subscriptions:")
+        s = ["ClientTagManager - List of subscriptions:"]
         for tag_address, callback in self._tag_events.items():
-            log.info(f"  - {tag_address}: {callback.__name__}")
+            s.append(f"  - {tag_address}: {callback.__name__}")
+        log.info("\n".join(s))
