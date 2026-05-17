@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 
 class MyUserManager(UserManager):
     def __init__(self, config: OpcUaServerConfig):
-        print("MyUserManager init")
+        log.debug("MyUserManager initialized")
         self.config = config
 
     def get_user(self, iserver: InternalServer, username=None, password=None, certificate=None):
@@ -33,15 +33,14 @@ class MyUserManager(UserManager):
         certificate : cert object or None
         Return User(...) to allow, or None to reject.
         """
-        print("upc", username, password, certificate)
         if username and iserver.allow_remote_admin and username in ("admin", "Admin"):
-            print(f"CONNECT  user='{username}'")
+            log.info(f"CONNECT user='{username}' (Admin)")
             return User(role=UserRole.Admin, name=username)
         elif username and username in self.config.users:
-            print(f"CONNECT user '{username}'")
+            log.info(f"CONNECT user='{username}'")
             return User(role=UserRole.User, name=username)
         else:
-            print(f"CONNECT anonymous")
+            log.info("CONNECT anonymous")
             return User(role=UserRole.Anonymous)
 
 class MySession(InternalSession):
@@ -58,7 +57,7 @@ class MySession(InternalSession):
 
     async def close_session(self, delete_subscriptions: bool):
         username = getattr(self.user, "name", None) or "anonymous"
-        # print(f"DISCONNECT  user='{username}'  session='{self.name}'")
+        log.info(f"DISCONNECT user='{username}' session='{self.name}'")
         await super().close_session(delete_subscriptions)
 
 class MyInternalServer(InternalServer):
@@ -97,8 +96,7 @@ class OPCUAServer(Thread):
         try:
             self._loop.run_until_complete(self._async_worker())
         except Exception as e:
-            # print(f"OPCUAServer run error: {e}")
-            # tb.print_exc()
+            log.exception(f"OPCUAServer run error: {e}")
             pass
         finally:
             self._loop.close()
@@ -115,9 +113,9 @@ class OPCUAServer(Thread):
         try:
             self.join(timeout)
         except RuntimeError as e:
-            print(f"OPCUAServer stop RuntimeError: {e}")
-        except TimeoutError:
-            print(f"OPCUAServer stop TimeoutError: {e}")
+            log.error(f"OPCUAServer stop RuntimeError: {e}")
+        except TimeoutError as e:
+            log.error(f"OPCUAServer stop TimeoutError: {e}")
         except KeyboardInterrupt:
             pass
         self._opcua_status.status = OpcUaServerStatus.STOPPED 
@@ -178,7 +176,7 @@ class OPCUAServer(Thread):
             server_key_path  = self._certs_dir / "server_key.pem"
 
             if not server_cert_path.exists() or not server_key_path.exists():
-                print(f"Generating self-signed certs in {self._certs_dir}")
+                log.info(f"Generating self-signed certs in {self._certs_dir}")
                 await setup_self_signed_certificate(
                     key_file=server_key_path,
                     cert_file=server_cert_path,
@@ -188,12 +186,11 @@ class OPCUAServer(Thread):
                     cert_use=[ExtendedKeyUsageOID.SERVER_AUTH],
                     subject_attrs={"commonName": self.config.server_name}
                 )
-                print("Certs generated.")
+                log.info("Certs generated.")
 
             await self._server.load_certificate(server_cert_path)
             await self._server.load_private_key(server_key_path)
         else:
-            print("No secure policies; skipping certificate setup.")
             log.info("No secure policies; skipping certificate setup.")
 
 
@@ -211,14 +208,14 @@ class OPCUAServer(Thread):
         tokens = [ua.AnonymousIdentityToken]
         if self.config.users:
             tokens.append(ua.UserNameIdentityToken)
-            print(f"User token policy enabled with {len(self.config.users)} users.")
+            log.info(f"User token policy enabled with {len(self.config.users)} users.")
 
         self._server.set_identity_tokens(tokens)
         
     async def _async_worker(self):
         """Example usage of the OPC UA Server"""
         if self.config.enabled is False:
-            print("OPC UA Server is disabled in configuration.")
+            log.warning("OPC UA Server is disabled in configuration.")
             return
         self._opcua_status.status = OpcUaServerStatus.STARTING
         # self._server = Server(iserver=MyInternalServer(MyUserManager(self.config)))
@@ -253,13 +250,13 @@ class OPCUAServer(Thread):
                     except aio.TimeoutError:
                         continue  # No item in queue, just loop again
                     except Exception as e:
-                        print(f"Error processing queue item: {e}")
+                        log.error(f"Error processing queue item: {e}")
                         await aio.sleep(0.1)
         except PermissionError as e:
-            print(f"OPCUAServer Unable to bind to endpoint: {cfg.endpoint}. Permission denied.")
+            log.error(f"OPCUAServer Unable to bind to endpoint: {cfg.endpoint}. Permission denied.")
             self._opcua_status.status = OpcUaServerStatus.ERROR
             self._opcua_status.error = e
         except Exception as e:
-            print(f"OPCUAServer _async_worker error: {e}")
+            log.error(f"OPCUAServer _async_worker error: {e}")
             self._opcua_status.status = OpcUaServerStatus.ERROR
             self._opcua_status.error = e

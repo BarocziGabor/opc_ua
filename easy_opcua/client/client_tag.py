@@ -60,7 +60,7 @@ class ClientTag:
 
     async def write_async(self, value: Any) -> None:
         if not self._writable:
-            print(f"ClientTag {self._address} is not marked writable")
+            log.warning(f"ClientTag {self._address} is not marked writable")
             return
         await self._write_async(Variant(value, self._variant_type))
 
