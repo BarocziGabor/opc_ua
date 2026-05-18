@@ -59,6 +59,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import sys
 import os
+from pathlib import Path
 
 try:
     __version__ = version("easy_opcua")
@@ -81,15 +82,15 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 def setup_console_logging(level: int = logging.INFO, 
-                  format_str: str = '"[%(levelname)-5s] %(name)-20s - %(message)s"') -> logging.Logger:
+                          format_str: str = '[%(levelname)-5s] %(name)-20s - %(message)s') -> logging.Logger:
     """
     Convenience method to configure formatted logging for the library to stdout.
     Call this in the parent application to see detailed logs from easy_opcua.
     """
     # Avoid duplicate handlers if called multiple times
-    if any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
+    if any( h.__class__.__name__ == logging.StreamHandler.__name__ for h in logger.handlers if not isinstance(h, logging.NullHandler)):
         return logger
-
+    
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(logging.Formatter(format_str))
     logger.addFilter(_RelativePathFilter())
@@ -98,19 +99,21 @@ def setup_console_logging(level: int = logging.INFO,
     return logger
 
 def setup_file_logging(
-    filename: str = "easy_opcua.log",
+    filename: str | Path = "logs/easy_opcua.log",
     level: int = logging.INFO,
     max_bytes: int = 5 * 1024 * 1024,  # 5 MB
     backup_count: int = 5,
-    format_str: str = '"%(asctime)s\t[%(levelname)-5s] %(name)-20s - %(message)s"'
+    format_str: str = '[%(asctime)s\t[%(levelname)-5s] %(name)-20s - %(message)s]'
 ) -> logging.Logger:
     """
     Convenience method to configure rotating file logging for the library.
     """
     # Avoid duplicate handlers for the same filename
-    abs_filename = os.path.abspath(filename)
-    if any(isinstance(h, RotatingFileHandler) and os.path.abspath(h.baseFilename) == abs_filename 
-           for h in logger.handlers):
+    filename = Path(filename).resolve()
+    filename.parent.mkdir(parents=True, exist_ok=True)
+
+    # Avoid duplicate handlers if called multiple times with the same filename
+    if any(isinstance(h, RotatingFileHandler) and h.baseFilename == str(filename) for h in logger.handlers):
         return logger
 
     handler = RotatingFileHandler(filename, maxBytes=max_bytes, backupCount=backup_count)
